@@ -2,7 +2,6 @@ import {Bot, Context} from '@maxhub/max-bot-api';
 import sqlite3 from 'sqlite3';
 import {open} from 'sqlite';
 import dotenv from 'dotenv';
-import path from 'path';
 
 dotenv.config({ path: './token.env' });
 
@@ -11,7 +10,7 @@ const bot = new Bot(process.env.BOT_TOKEN!);
 
 // Инициализация базы данных SQLite
 const dbPromise = open({
-    filename: path.join(__dirname, 'bot_data.db'),
+    filename: 'bot_data.db',
     driver: sqlite3.Database,
 });
 
@@ -292,7 +291,7 @@ bot.on('message_callback', async (ctx: Context) => {
 
 ▪️ <b>Oz Dao</b>
 🚩 Гончарова, 15
-💬 Менеджер: <a href="max://user/${idDao}">Имя аккаунта</a>
+💬 Менеджер: <a href="max://user/${idDao}">Oz Dao Lounge Goncharova</a>
 🗺️ <a href="https://yandex.ru/maps/-/CHuxvTNo">Открыть на карте</a>
       `;
             await ctx.api.editMessage(ctx.messageId!, {text: feedbackText, format: 'html'});
