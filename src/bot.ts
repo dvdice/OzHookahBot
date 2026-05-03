@@ -213,6 +213,7 @@ bot.on('message_callback', async (ctx: Context) => {
             break;
         }
         case 'back_to_main':
+            await clearState(ctx.user?.user_id!);
             await editWithKeyboard('Главное меню. Выберите действие:', mainMenuKeyboard);
             break;
         case 'menu_promo':
@@ -547,9 +548,7 @@ function formatUserMention(userId: number, userName: string | undefined): string
     return `<a href="max://user/${userId}">${safeName}</a>`;
 }
 
-/**
- * Рассылает сообщение всем пользователям из БД
- */
+//Рассылает сообщение всем пользователям из БД
 async function sendBroadcast(ctx: Context, content: { text?: string; photo?: string }) {
     const db = await dbPromise;
 
