@@ -1,4 +1,4 @@
-import {Bot, Context} from '@maxhub/max-bot-api';
+import {Bot, Context, Keyboard} from '@maxhub/max-bot-api';
 import sqlite3 from 'sqlite3';
 import {open} from 'sqlite';
 import dotenv from 'dotenv';
@@ -191,6 +191,23 @@ bot.on('message_callback', async (ctx: Context) => {
     }
 
     switch (payload) {
+        case 'contact:avia':
+        case 'contact:orlova':
+        case 'contact:dao': {
+            const contactMap: Record<string, { name: string; phone: string }> = {
+                'contact:avia': { name: 'Менеджер Oz Avia', phone: '+79510952624' },
+                'contact:orlova': { name: 'Менеджер Oz Orlova', phone: '+79539861095' },
+                'contact:dao': { name: 'Менеджер Oz Dao', phone: '+79510952626' },
+            };
+
+            const contact = contactMap[payload];
+            if (!contact) break;
+
+            await ctx.reply(`📇 Контакт менеджера:`, {
+                attachments: [createContactAttachment(contact.name, contact.phone)]
+            });
+            break;
+        }
         case 'menu_reservation':
             await editWithKeyboard('Выберите заведение:', reservationKeyboard);
             break;
@@ -274,28 +291,37 @@ bot.on('message_callback', async (ctx: Context) => {
             await ctx.api.editMessage(ctx.messageId!, {text: infoText, format: 'markdown'});
             break;
         case 'menu_feedback':
-            const idAvia = (await db.get('SELECT manager_id FROM places WHERE place = ?', 'Oz Avia'))?.manager_id;
-            const idOrlova = (await db.get('SELECT manager_id FROM places WHERE place = ?', 'Oz Orlova'))?.manager_id;
-            const idDao = (await db.get('SELECT manager_id FROM places WHERE place = ?', 'Oz Dao'))?.manager_id;
             const feedbackText = `
 📩 <b>Свяжитесь с нами:</b>
 
 ▪️ <b>Oz Avia</b>
 🚩 Авиастроителей, 48
-💬 Менеджер: <a href="max://user/${idAvia}">Оз Авиастроителей</a>
 🗺️ <a href="https://yandex.ru/maps/-/CHuxvC3U">Открыть на карте</a>
 
 ▪️ <b>Oz Orlova</b>
 🚩 Орлова, 28/58
-💬 Менеджер: <a href="max://user/${idOrlova}">Oz Lounge Orlova</a>
 🗺️ <a href="https://yandex.ru/maps/-/CHuxvOO6">Открыть на карте</a>
 
 ▪️ <b>Oz Dao</b>
 🚩 Гончарова, 15
-💬 Менеджер: <a href="max://user/${idDao}">Oz Dao Lounge Goncharova</a>
 🗺️ <a href="https://yandex.ru/maps/-/CHuxvTNo">Открыть на карте</a>
-      `;
-            await ctx.api.editMessage(ctx.messageId!, {text: feedbackText, format: 'html'});
+
+<i>Нажмите на контакт ниже, чтобы сохранить номер менеджера</i>
+  `.trim();
+
+            // Клавиатура с кнопкой-контактом
+            const feedbackKeyboard = Keyboard.inlineKeyboard([
+                [Keyboard.button.callback('📇 Контакт менеджера Avia', 'contact:avia')],
+                [Keyboard.button.callback('📇 Контакт менеджера Orlova', 'contact:orlova')],
+                [Keyboard.button.callback('📇 Контакт менеджера Dao', 'contact:dao')],
+                backToMainMenuKeyboard.payload.buttons[0],
+            ]);
+
+            await ctx.api.editMessage(ctx.messageId!, {
+                text: feedbackText,
+                format: 'html',
+                attachments: [feedbackKeyboard]
+            });
             break;
         case 'admin_create_promo':
             await editWithKeyboard('Введите текст новой акции:', backToMainMenuKeyboard);
@@ -601,6 +627,16 @@ async function sendBroadcast(ctx: Context, content: { text?: string; photo?: str
     );
 
     console.log(`[Broadcast] завершено: отправлено=${sentCount}, ошибок=${errorCount}`);
+}
+
+function createContactAttachment(name: string, phone: string) {
+    return {
+        type: 'contact' as const,
+        payload: {
+            name: name,
+            vcf_info: `BEGIN:VCARD\nVERSION:3.0\nFN:${name}\nTEL:${phone}\nEND:VCARD`
+        }
+    };
 }
 
 startBot().catch(console.error);
