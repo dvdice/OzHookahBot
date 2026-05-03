@@ -93,7 +93,7 @@ bot.command('start', async (ctx: Context) => {
     if (userId) {
         const db = await dbPromise;
         await db.run(
-            'INSERT INTO Users (user_id, name) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET name = ?',
+            'INSERT INTO users (user_id, name) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET name = ?',
             [userId, name, name]
         );
     }
