@@ -25,7 +25,7 @@ async function initDatabase() {
             INTEGER
             PRIMARY
             KEY,
-            first_name
+            name
             TEXT
         );
         CREATE TABLE IF NOT EXISTS promotions
