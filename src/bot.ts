@@ -70,10 +70,22 @@ async function initDatabase() {
         ))
             );
     `);
-    // Вставка тестовых данных для менеджеров
-    await db.run('INSERT OR IGNORE INTO places (place, manager_id) VALUES (?, ?)', ['Oz Avia', 111111111]);
-    await db.run('INSERT OR IGNORE INTO places (place, manager_id) VALUES (?, ?)', ['Oz Orlova', 987654321]);
-    await db.run('INSERT OR IGNORE INTO places (place, manager_id) VALUES (?, ?)', ['Oz Dao', 555555555]);
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS bot_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        );
+    `);
+    // Значение по умолчанию (если ещё не задано админом)
+    await db.run(`INSERT OR IGNORE INTO bot_settings (key, value) VALUES (?, ?)`, [
+        'welcome_text',
+`🌟 Добро пожаловать!
+
+Я — бот кальян-бара Oz.
+Чем могу помочь?
+
+Напишите <code>/start</code> или нажмите на кнопку выбора команды (слева от микрофона) 👇`
+    ]);
     console.log('База данных инициализирована.');
 }
 
@@ -150,6 +162,7 @@ const adminMenuKeyboard = {
             [{type: 'callback' as const, text: 'Акции (удалить)', payload: 'admin_delete_promo'}],
             [{type: 'callback' as const, text: 'Рассылка', payload: 'admin_broadcast'}],
             [{type: 'callback' as const, text: 'Количество пользователей', payload: 'admin_amount_of_users'}],
+            [{type: 'callback' as const, text: 'Изменить приветствие', payload: 'admin_edit_welcome'}],
             [{type: 'callback' as const, text: '◀️ Главное меню', payload: 'back_to_main'}]
         ],
     },
@@ -265,17 +278,23 @@ bot.on('message_callback', async (ctx: Context) => {
 ▪️ **Oz Avia**
 🚩 Авиастроителей, 48
 📞 95-26-24
-🕒 Время работы: Вс - Чт, 12:00-02:00 / Пт - Сб, 12:00-04:00
+🕒 Время работы:
+Вс - Чт, 12:00-02:00
+Пт - Сб, 12:00-04:00
 
 ▪️ **Oz Orlova**
 🚩 Орлова, 28/58
 📞 92-28-58
-🕒 Время работы: Вс - Чт, 12:00-02:00 / Пт - Сб, 12:00-04:00
+🕒 Время работы:
+Вс - Чт, 12:00-02:00 
+Пт - Сб, 12:00-04:00
 
 ▪️ **Oz Dao**
 🚩 Гончарова, 15
 📞 95-26-26
-🕒 Время работы: Вс - Чт, 12:00-02:00 / Пт - Сб, 12:00-04:00
+🕒 Время работы:
+Вс - Чт, 12:00-02:00
+Пт - Сб, 12:00-04:00
       `;
             await ctx.api.editMessage(ctx.messageId!, {text: addressText, format: 'markdown'});
             break;
@@ -369,6 +388,19 @@ bot.on('message_callback', async (ctx: Context) => {
             const result = await db.get('SELECT count(*) as total FROM users');
             await ctx.reply(`Количество активных пользователей: **${result.total}**`, {format: 'markdown'});
             break;
+        case 'admin_edit_welcome':
+            const currentWelcomeText = await db.get('SELECT value FROM bot_settings WHERE key = ?', ['welcome_text']);
+
+            await setState(ctx.user?.user_id!, 'admin_waiting_welcome_text');
+            await ctx.api.editMessage(ctx.messageId!, {
+                text: 'Отправьте новый текст приветствия.\n\n' +
+                    'Поддерживается HTML:\n' +
+                    '<b>жирный</b>, <i>курсив</i>, <a href="https://...">ссылки</a>, <code>/start</code>' +
+                    'Следующее собщение - текущее приветствие',
+            });
+
+            await ctx.reply(currentWelcomeText.value);
+            break;
         default:
             if (payload?.startsWith('del_')) {
                 const id = parseInt(payload.split('_')[1]);
@@ -378,6 +410,7 @@ bot.on('message_callback', async (ctx: Context) => {
             break;
     }
 });
+
 // Обработчик текстовых сообщений (для пошагового ввода)
 bot.on('message_created', async (ctx: Context) => {
     // Пропускаем, если это ответ на callback (чтобы не дублировать)
@@ -516,7 +549,7 @@ bot.on('message_created', async (ctx: Context) => {
                 return;
             }
 
-            // === ШАГ 2: Ждём текст-подпись к фото ===
+            // Ждём текст-подпись к фото
             if (broadcastData.step === 'waiting_caption' && broadcastData.photo) {
                 const caption = ctx.message?.body?.text?.trim();
 
@@ -527,8 +560,41 @@ bot.on('message_created', async (ctx: Context) => {
                 await sendBroadcast(ctx, { photo: broadcastData.photo, text: textToSend });
                 return;
             }
+        case 'admin_waiting_welcome_text': {
+            const newText = text?.trim();
+            if (!newText || newText.length < 5) {
+                await ctx.reply('❌ Текст слишком короткий. Минимум 5 символов:');
+                break;
+            }
+
+            try {
+                const db = await dbPromise;
+                await db.run(
+                    'INSERT OR REPLACE INTO bot_settings (key, value) VALUES (?, ?)',
+                    ['welcome_text', newText]
+                );
+                await clearState(userId);
+                await ctx.reply('✅ Текст приветствия успешно обновлён!', {
+                    attachments: [adminMenuKeyboard]
+                });
+            } catch (error) {
+                console.error('Ошибка сохранения приветствия:', error);
+                await ctx.reply('❌ Не удалось сохранить. Попробуйте позже.');
+            }
+            break;
+        }
 
     }
+});
+
+// Обработчик события "пользователь начал диалог с ботом"
+bot.on('bot_started', async (ctx: Context) => {
+    const db = await dbPromise;
+    const row = await db.get('SELECT value FROM bot_settings WHERE key = ?', ['welcome_text']);
+
+    await ctx.reply(row?.value || '🌟 Добро пожаловать в Oz!', {
+        format: 'html'
+    });
 });
 
 // Запуск бота
