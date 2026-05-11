@@ -235,10 +235,12 @@ bot.on('message_callback', async (ctx: Context) => {
             break;
         case 'menu_promo':
             const promos = await db.all('SELECT text FROM promotions');
-            await ctx.api.editMessage(ctx.messageId!, {text: 'Наши акции:'});
+            let resultMessage = '';
             for (const promo of promos) {
-                await ctx.reply(promo.text);
+                resultMessage += promo.text + '\n\n';
             }
+            await ctx.api.editMessage(ctx.messageId!, {text: resultMessage});
+
             break;
         case 'menu_menu':
             const menuText = `
@@ -281,9 +283,9 @@ bot.on('message_callback', async (ctx: Context) => {
             const infoText = `
 **Оформи электронную бонусную карту 5% и получи**
 
-🎁200 бонусов в подарок 🎁
+🎁1000 бонусов в подарок 🎁
 
-[Карта лояльности](https://cards.premiumbonus.su/OZaviastr48/login)
+[Карта лояльности](https://pbc.su/w0BwkZ)
 
 ◾️Оплачивай бонусами до 20% от чека
 ◾️1 бонус = 1 рублю
