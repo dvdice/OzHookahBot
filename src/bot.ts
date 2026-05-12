@@ -129,7 +129,7 @@ bot.command('start', async (ctx: Context) => {
 // Обработчик команды /controlboard
 bot.command('controlboard', async (ctx: Context) => {
     const userId = ctx.user?.user_id;
-    // Доступ к рассылке есть только у Даши
+    // Доступ к админ-панели есть только у Админа
     if (userId !== 263267357) return;
 
     await ctx.reply('Меню администратора:', {attachments: [adminMenuKeyboard]});
@@ -531,7 +531,7 @@ bot.on('message_created', async (ctx: Context) => {
                 if (photo) {
                     await setState(userId, 'admin_broadcast_waiting', {
                         step: 'waiting_caption',
-                        photo: photo.payload.url
+                        photoToken: photo.payload.token
                     });
                     await ctx.reply('📝 Теперь введите текст-подпись к фото (или отправьте "-" для рассылки без текста):');
                     return;
@@ -550,14 +550,14 @@ bot.on('message_created', async (ctx: Context) => {
             }
 
             // Ждём текст-подпись к фото
-            if (broadcastData.step === 'waiting_caption' && broadcastData.photo) {
+            if (broadcastData.step === 'waiting_caption' && broadcastData.photoToken) {
                 const caption = ctx.message?.body?.text?.trim();
 
                 // Если админ отправил "-" или пустой текст — рассылаем только фото
                 const textToSend = (caption && caption !== '-') ? caption : undefined;
 
                 await clearState(userId);
-                await sendBroadcast(ctx, { photo: broadcastData.photo, text: textToSend });
+                await sendBroadcast(ctx, { photoToken: broadcastData.photoToken, text: textToSend });
                 return;
             }
         case 'admin_waiting_welcome_text': {
@@ -643,7 +643,7 @@ function formatUserMention(userId: number, userName: string | undefined): string
 }
 
 //Рассылает сообщение всем пользователям из БД
-async function sendBroadcast(ctx: Context, content: { text?: string; photo?: string }) {
+async function sendBroadcast(ctx: Context, content: { text?: string; photoToken?: string }) {
     const db = await dbPromise;
 
     // Получаем всех пользователей
@@ -658,13 +658,15 @@ async function sendBroadcast(ctx: Context, content: { text?: string; photo?: str
         const targetUserId = row.user_id;
 
         try {
-            if (content.photo) {
-                // 📸 Отправка фото с подписью
+            if (content.photoToken) {
+                // Отправка фото с подписью
                 await bot.api.sendMessageToUser(targetUserId, content.text || '', {
                     attachments: [{
                         type: 'image',
                         payload: {
-                            url: content.photo
+                            photos: {
+                                photo: { token: content.photoToken }
+                            }
                         }
                     }],
                     format: content.text ? 'markdown' : null
@@ -677,7 +679,6 @@ async function sendBroadcast(ctx: Context, content: { text?: string; photo?: str
             }
             sentCount++;
 
-            // Небольшая задержка, чтобы не спамить API (опционально)
             await new Promise(resolve => setTimeout(resolve, 50));
 
         } catch (error) {
