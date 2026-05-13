@@ -3,7 +3,7 @@ import sqlite3 from 'sqlite3';
 import {open} from 'sqlite';
 import dotenv from 'dotenv';
 
-dotenv.config({ path: '../token.env' });
+dotenv.config({ path: './token.env' });
 
 // Инициализация бота с токеном из переменной окружения
 const bot = new Bot(process.env.BOT_TOKEN!);
