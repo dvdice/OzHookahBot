@@ -3,7 +3,7 @@ import sqlite3 from 'sqlite3';
 import {open} from 'sqlite';
 import dotenv from 'dotenv';
 
-dotenv.config({ path: './token.env' });
+dotenv.config({ path: '../token.env' });
 
 // Инициализация бота с токеном из переменной окружения
 const bot = new Bot(process.env.BOT_TOKEN!);
@@ -276,21 +276,21 @@ bot.on('message_callback', async (ctx: Context) => {
         case 'menu_address':
             const addressText = `
 ▪️ **Oz Avia**
-🚩 Авиастроителей, 48
+🚩 [Авиастроителей, 48](https://yandex.ru/maps/-/CHuxvC3U)
 📞 95-26-24
 🕒 Время работы:
 Вс - Чт, 12:00-02:00
 Пт - Сб, 12:00-04:00
 
 ▪️ **Oz Orlova**
-🚩 Орлова, 28/58
+🚩 [Орлова, 28/58](https://yandex.ru/maps/-/CHuxvOO6)
 📞 92-28-58
 🕒 Время работы:
 Вс - Чт, 12:00-02:00 
 Пт - Сб, 12:00-04:00
 
 ▪️ **Oz Dao**
-🚩 Гончарова, 15
+🚩 [Гончарова, 15](https://yandex.ru/maps/-/CHuxvTNo)
 📞 95-26-26
 🕒 Время работы:
 Вс - Чт, 12:00-02:00
