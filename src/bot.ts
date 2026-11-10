@@ -129,10 +129,10 @@ bot.command('start', async (ctx: Context) => {
 // Обработчик команды /controlboard
 bot.command('controlboard', async (ctx: Context) => {
     const userId = ctx.user?.user_id;
-    // Доступ к админ-панели есть только у Админа
-    if (userId !== 263267357) return;
+    // Доступ к админ-панели есть только у админов
+    if (userId !== 263267357 && userId !== 161467831) return;
 
-    await ctx.reply('Меню администратора:', {attachments: [adminMenuKeyboard]});
+    await ctx.reply('Меню администратора:', { attachments: [adminMenuKeyboard] });
 });
 
 // --- Клавиатуры ---
