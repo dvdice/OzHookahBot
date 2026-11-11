@@ -705,7 +705,7 @@ function createContactAttachment(name: string, phone: string) {
             name: name,
             vcf_info: `BEGIN:VCARD\nVERSION:3.0\nFN:${name}\nTEL:${phone}\nEND:VCARD`
         }
-    };
+    } as any;
 }
 
 startBot().catch(console.error);

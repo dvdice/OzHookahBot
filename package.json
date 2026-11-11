@@ -7,7 +7,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@maxhub/max-bot-api": "^0.2.4",
+    "@maxhub/max-bot-api": "^1.1.0",
     "dotenv": "^17.4.2",
     "path": "^0.12.7",
     "sqlite": "^5.1.1",
